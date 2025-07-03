@@ -62,11 +62,46 @@ if exist "requirements.txt" (
 
 echo Dependencies installed successfully
 
-REM Run the Streamlit app
+REM Ask user which version to run
 echo.
-echo Starting Streamlit app...
-echo The app will open in your default browser at http://localhost:8501
-echo Press Ctrl+C to stop the server
+echo === SELECT APPLICATION MODE ===
+echo.
+echo 1. Standard Demo Application
+echo    - Interactive sorting demonstration
+echo    - Performance comparisons
+echo    - Step-by-step visualization
+echo.
+echo 2. Interactive Research Paper
+echo    - Academic paper format
+echo    - Mathematical proofs and theorems
+echo    - Publication-ready presentation
+echo.
+echo 3. Launch Menu (Python-based selector)
+echo    - Use the Python launcher for selection
 echo.
 
-streamlit run app.py
+set /p choice="Enter your choice (1, 2, or 3): "
+
+if "%choice%"=="1" (
+    echo.
+    echo Starting Standard Demo Application...
+    echo The app will open in your default browser at http://localhost:8501
+    echo Press Ctrl+C to stop the server
+    echo.
+    streamlit run app.py
+) else if "%choice%"=="2" (
+    echo.
+    echo Starting Interactive Research Paper...
+    echo The app will open in your default browser at http://localhost:8501
+    echo Press Ctrl+C to stop the server
+    echo.
+    streamlit run research_paper_app.py
+) else if "%choice%"=="3" (
+    echo.
+    echo Launching Python-based menu...
+    %PYTHON_CMD% run_app.py
+) else (
+    echo Invalid choice. Please run the script again and select 1, 2, or 3.
+    pause
+    exit /b 1
+)

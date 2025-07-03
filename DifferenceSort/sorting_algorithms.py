@@ -1,5 +1,7 @@
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import multiprocessing
 
 class ReferenceBasedSorting:
     """
@@ -138,157 +140,6 @@ class ReferenceBasedSorting:
         
         return steps
 
-class OptimizedReferenceBasedSorting:
-    """
-    Optimized version of the reference-based sorting algorithm using hash-based approach.
-    
-    Key optimizations:
-    1. Uses dictionary instead of positioned array (eliminates null positions)
-    2. Only stores actual values (space efficient)
-    3. Handles duplicates properly
-    4. Works well with sparse data
-    """
-    
-    def sort(self, arr: List[int]) -> List[int]:
-        """
-        Sort using optimized hash-based reference algorithm.
-        
-        Args:
-            arr: List of integers to sort
-            
-        Returns:
-            Sorted list of integers
-        """
-        if not arr:
-            return []
-        
-        if len(arr) == 1:
-            return arr
-        
-        # Use first element as reference
-        reference = arr[0]
-        
-        # Use dictionary for counting (similar to counting sort)
-        count_map = {}
-        for num in arr:
-            diff = num - reference
-            count_map[diff] = count_map.get(diff, 0) + 1
-        
-        # Build result by iterating through sorted differences
-        result = []
-        for diff in sorted(count_map.keys()):
-            value = diff + reference
-            result.extend([value] * count_map[diff])
-        
-        return result
-    
-    def sort_with_memory_usage(self, arr: List[int]) -> tuple:
-        """
-        Sort and return memory usage comparison.
-        
-        Returns:
-            Tuple of (sorted_array, original_space_needed, optimized_space_used)
-        """
-        if not arr:
-            return [], 0, 0
-        
-        reference = arr[0]
-        differences = [x - reference for x in arr]
-        
-        # Calculate original algorithm space requirements
-        min_diff = min(differences)
-        max_diff = max(differences)
-        original_space = max_diff - min_diff + 1
-        
-        # Use optimized approach
-        count_map = {}
-        for num in arr:
-            diff = num - reference
-            count_map[diff] = count_map.get(diff, 0) + 1
-        
-        optimized_space = len(count_map)  # Only unique differences
-        
-        # Build result
-        result = []
-        for diff in sorted(count_map.keys()):
-            value = diff + reference
-            result.extend([value] * count_map[diff])
-        
-        return result, original_space, optimized_space
-    
-    def sort_with_steps(self, arr: List[int]) -> List[Dict[str, Any]]:
-        """
-        Sort using optimized algorithm and return detailed steps for visualization.
-        
-        Args:
-            arr: List of integers to sort
-            
-        Returns:
-            List of dictionaries containing step information
-        """
-        steps = []
-        
-        if not arr:
-            return [{'type': 'final', 'description': 'Empty array', 'sorted_array': []}]
-        
-        if len(arr) == 1:
-            return [{'type': 'final', 'description': 'Single element array', 'sorted_array': arr}]
-        
-        # Step 1: Reference selection
-        reference = arr[0]
-        steps.append({
-            'type': 'reference',
-            'description': 'Select reference element (first element)',
-            'reference': reference,
-            'array': arr.copy()
-        })
-        
-        # Step 2: Calculate differences
-        differences = [x - reference for x in arr]
-        steps.append({
-            'type': 'differences',
-            'description': 'Calculate differences relative to reference',
-            'reference': reference,
-            'array': arr.copy(),
-            'differences': differences
-        })
-        
-        # Step 3: Hash-based counting (optimized approach)
-        count_map = {}
-        for i, num in enumerate(arr):
-            diff = num - reference
-            if diff not in count_map:
-                count_map[diff] = {'count': 0, 'values': []}
-            count_map[diff]['count'] += 1
-            count_map[diff]['values'].append(num)
-        
-        steps.append({
-            'type': 'hash_mapping',
-            'description': 'Create hash map of differences (optimized approach)',
-            'reference': reference,
-            'array': arr.copy(),
-            'count_map': count_map,
-            'differences': differences
-        })
-        
-        # Step 4: Sort by differences and build result
-        sorted_diffs = sorted(count_map.keys())
-        result = []
-        for diff in sorted_diffs:
-            values = count_map[diff]['values']
-            values.sort()  # Sort values at same difference
-            result.extend(values)
-        
-        steps.append({
-            'type': 'final_optimized',
-            'description': 'Build final sorted array from hash map',
-            'sorted_differences': sorted_diffs,
-            'sorted_array': result,
-            'count_map': count_map
-        })
-        
-        return steps
-
 class StandardSorting:
     """
     Implementation of standard sorting algorithms for comparison.
@@ -347,3 +198,103 @@ class StandardSorting:
         result.extend(left[i:])
         result.extend(right[j:])
         return result
+
+
+class OptimizedReferenceBasedSorting:
+    """
+    Optimized hash-based implementation of the reference-based sorting algorithm.
+    Eliminates null positions and handles sparse data efficiently.
+    """
+    
+    def __init__(self, num_threads: Optional[int] = None):
+        """
+        Initialize with optional thread control.
+        
+        Args:
+            num_threads: Number of threads to use. If None, uses 1 (sequential).
+        """
+        self.num_threads = num_threads or 1
+    
+    def sort(self, arr: List[int]) -> List[int]:
+        """
+        Sort using optimized hash-based approach.
+        
+        Args:
+            arr: List of integers to sort
+            
+        Returns:
+            Sorted list of integers
+        """
+        if len(arr) <= 1:
+            return arr
+        
+        # Use first element as reference
+        reference = arr[0]
+        
+        # Use dictionary for counting (similar to counting sort)
+        count_map = {}
+        for num in arr:
+            diff = num - reference
+            count_map[diff] = count_map.get(diff, 0) + 1
+        
+        # Build result by iterating through sorted differences
+        result = []
+        for diff in sorted(count_map.keys()):
+            value = diff + reference
+            result.extend([value] * count_map[diff])
+        
+        return result
+    
+    def sort_with_steps(self, arr: List[int]) -> List[Dict[str, Any]]:
+        """
+        Sort the array and return detailed steps for visualization.
+        """
+        steps = []
+        
+        if not arr:
+            return [{'type': 'final', 'description': 'Empty array', 'sorted_array': []}]
+        
+        if len(arr) == 1:
+            return [{'type': 'final', 'description': 'Single element array', 'sorted_array': arr}]
+        
+        # Step 1: Reference selection
+        reference = arr[0]
+        steps.append({
+            'type': 'reference',
+            'description': 'Select reference element (optimized hash-based)',
+            'reference': reference,
+            'array': arr.copy(),
+            'algorithm': 'Optimized Hash-Based'
+        })
+        
+        # Step 2: Calculate differences and count
+        count_map = {}
+        differences = []
+        for num in arr:
+            diff = num - reference
+            differences.append(diff)
+            count_map[diff] = count_map.get(diff, 0) + 1
+        
+        steps.append({
+            'type': 'differences',
+            'description': 'Calculate differences and count occurrences',
+            'reference': reference,
+            'array': arr.copy(),
+            'differences': differences,
+            'count_map': dict(sorted(count_map.items()))
+        })
+        
+        # Step 3: Build result
+        result = []
+        for diff in sorted(count_map.keys()):
+            value = diff + reference
+            result.extend([value] * count_map[diff])
+        
+        steps.append({
+            'type': 'final',
+            'description': 'Build sorted array from hash map',
+            'sorted_array': result,
+            'space_saved': f'{len(count_map)} unique values vs {max(differences) - min(differences) + 1} positions'
+        })
+        
+        return steps

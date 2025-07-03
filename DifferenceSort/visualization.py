@@ -201,10 +201,6 @@ class SortingVisualizer:
                 fig = self._visualize_positioning_step(step)
             elif step['type'] == 'final':
                 fig = self._visualize_final_step(step)
-            elif step['type'] == 'hash_mapping':
-                fig = self._visualize_hash_mapping_step(step)
-            elif step['type'] == 'final_optimized':
-                fig = self._visualize_final_optimized_step(step)
             else:
                 continue
             
@@ -315,116 +311,5 @@ class SortingVisualizer:
             yaxis_title='Value',
             showlegend=False
         )
-        
-        return fig
-    
-    def _visualize_hash_mapping_step(self, step: dict) -> go.Figure:
-        """Visualize hash mapping step for optimized algorithm."""
-        fig = make_subplots(
-            rows=2, cols=1,
-            subplot_titles=('Original Array Elements', 'Hash Map: Differences → Values'),
-            vertical_spacing=0.4,
-            specs=[[{"secondary_y": False}], [{"type": "table"}]]
-        )
-        
-        array = step['array']
-        reference = step['reference']
-        count_map = step['count_map']
-        
-        # Original array with reference highlighted
-        colors = ['red' if x == reference else 'lightblue' for x in array]
-        fig.add_trace(
-            go.Bar(
-                x=list(range(len(array))),
-                y=array,
-                marker_color=colors,
-                text=array,
-                textposition='auto',
-                name='Array Elements'
-            ),
-            row=1, col=1
-        )
-        
-        # Hash map visualization as table
-        hash_data = []
-        for diff, info in sorted(count_map.items()):
-            hash_data.append([
-                f"Diff: {diff}",
-                f"Values: {info['values']}",
-                f"Count: {info['count']}"
-            ])
-        
-        fig.add_trace(
-            go.Table(
-                header=dict(values=['Difference', 'Values', 'Count'],
-                           fill_color='lightgray',
-                           align='left'),
-                cells=dict(values=list(zip(*hash_data)) if hash_data else [[], [], []],
-                          fill_color='white',
-                          align='left')
-            ),
-            row=2, col=1
-        )
-        
-        fig.update_layout(
-            title=f'Hash Map Creation (Reference: {reference})',
-            showlegend=False,
-            height=600
-        )
-        
-        fig.update_xaxes(title_text="Index", row=1, col=1)
-        fig.update_yaxes(title_text="Value", row=1, col=1)
-        
-        return fig
-    
-    def _visualize_final_optimized_step(self, step: dict) -> go.Figure:
-        """Visualize final optimized result step."""
-        fig = make_subplots(
-            rows=2, cols=1,
-            subplot_titles=('Sorted Differences Order', 'Final Sorted Array'),
-            vertical_spacing=0.3
-        )
-        
-        sorted_diffs = step['sorted_differences']
-        sorted_array = step['sorted_array']
-        count_map = step['count_map']
-        
-        # Show sorted differences
-        diff_counts = [count_map[diff]['count'] for diff in sorted_diffs]
-        fig.add_trace(
-            go.Bar(
-                x=sorted_diffs,
-                y=diff_counts,
-                name='Difference Counts',
-                marker_color='lightcoral',
-                text=diff_counts,
-                textposition='auto'
-            ),
-            row=1, col=1
-        )
-        
-        # Show final sorted array
-        fig.add_trace(
-            go.Bar(
-                x=list(range(len(sorted_array))),
-                y=sorted_array,
-                name='Final Sorted Array',
-                marker_color='lightgreen',
-                text=sorted_array,
-                textposition='auto'
-            ),
-            row=2, col=1
-        )
-        
-        fig.update_layout(
-            title='Final Optimized Result',
-            showlegend=False,
-            height=500
-        )
-        
-        fig.update_xaxes(title_text="Difference Value", row=1, col=1)
-        fig.update_yaxes(title_text="Count", row=1, col=1)
-        fig.update_xaxes(title_text="Index", row=2, col=1)
-        fig.update_yaxes(title_text="Value", row=2, col=1)
         
         return fig

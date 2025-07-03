@@ -60,9 +60,42 @@ fi
 
 echo -e "${GREEN}Dependencies installed successfully${NC}"
 
-# Run the Streamlit app
-echo -e "\n${GREEN}Starting Streamlit app...${NC}"
-echo -e "${YELLOW}The app will open in your default browser at http://localhost:8501${NC}"
-echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}\n"
+# Ask user which version to run
+echo -e "\n${GREEN}=== SELECT APPLICATION MODE ===${NC}"
+echo -e "${YELLOW}1. Standard Demo Application${NC}"
+echo -e "   - Interactive sorting demonstration"
+echo -e "   - Performance comparisons"
+echo -e "   - Step-by-step visualization\n"
 
-streamlit run app.py
+echo -e "${YELLOW}2. Interactive Research Paper${NC}"
+echo -e "   - Academic paper format"
+echo -e "   - Mathematical proofs and theorems"
+echo -e "   - Publication-ready presentation\n"
+
+echo -e "${YELLOW}3. Launch Menu (Python-based selector)${NC}"
+echo -e "   - Use the Python launcher for selection\n"
+
+read -p "Enter your choice (1, 2, or 3): " choice
+
+case $choice in
+    1)
+        echo -e "\n${GREEN}Starting Standard Demo Application...${NC}"
+        echo -e "${YELLOW}The app will open in your default browser at http://localhost:8501${NC}"
+        echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}\n"
+        streamlit run app.py
+        ;;
+    2)
+        echo -e "\n${GREEN}Starting Interactive Research Paper...${NC}"
+        echo -e "${YELLOW}The app will open in your default browser at http://localhost:8501${NC}"
+        echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}\n"
+        streamlit run research_paper_app.py
+        ;;
+    3)
+        echo -e "\n${GREEN}Launching Python-based menu...${NC}"
+        $PYTHON_CMD run_app.py
+        ;;
+    *)
+        echo -e "${RED}Invalid choice. Please run the script again and select 1, 2, or 3.${NC}"
+        exit 1
+        ;;
+esac

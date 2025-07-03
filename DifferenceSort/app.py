@@ -5,7 +5,17 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import plotly.express as px
 import time
+import multiprocessing
 from sorting_algorithms import ReferenceBasedSorting, StandardSorting, OptimizedReferenceBasedSorting
+from parallel_sorting_algorithms import (
+    ParallelReferenceBasedSorting, 
+    ParallelStandardSorting,
+    OptimizedParallelReferenceBasedSorting
+)
+from multiprocess_sorting_algorithms import (
+    MultiprocessReferenceBasedSorting,
+    MultiprocessStandardSorting
+)
 from visualization import SortingVisualizer
 
 def main():
@@ -14,6 +24,36 @@ def main():
     
     # Sidebar for configuration
     st.sidebar.header("Configuration")
+    
+    # Thread control settings
+    st.sidebar.subheader("Thread Control Settings")
+    use_parallel = st.sidebar.checkbox("Enable Parallel Processing", value=False)
+    
+    max_threads = multiprocessing.cpu_count()
+    if use_parallel:
+        parallel_method = st.sidebar.radio(
+            "Parallelization Method",
+            ["Threading", "Multiprocessing"],
+            help="Multiprocessing provides true parallelism but has more overhead"
+        )
+        
+        num_threads = st.sidebar.slider(
+            f"Number of {'Threads' if parallel_method == 'Threading' else 'Processes'}",
+            min_value=1,
+            max_value=max_threads * 2,
+            value=max_threads,
+            help=f"Your system has {max_threads} CPU cores"
+        )
+    else:
+        num_threads = 1
+        parallel_method = "Threading"
+    
+    # Algorithm selection
+    st.sidebar.subheader("Algorithm Selection")
+    algorithm_type = st.sidebar.selectbox(
+        "Choose Algorithm Type",
+        ["Original Reference-Based", "Optimized Hash-Based", "Standard Algorithms"]
+    )
     
     # Input section
     st.header("Input Data")
@@ -71,62 +111,20 @@ def main():
     
     # Algorithm explanation (available before input validation)
     with st.expander("Algorithm Explanation"):
-        algorithm_choice = st.radio(
-            "Choose algorithm version to view:",
-            ["Original Algorithm", "Optimized Algorithm"],
-            horizontal=True
-        )
+        st.markdown("""
+        **Reference-Based Sorting Algorithm:**
+        1. **Reference Selection**: The first element becomes the reference point
+        2. **Difference Calculation**: Calculate the difference of each element relative to the reference
+        3. **Positioning**: Place elements in positions equal to their differences (with null padding)
+        4. **Null Removal**: Remove null values to get the final sorted array
         
-        if algorithm_choice == "Original Algorithm":
-            st.markdown("""
-            **Original Reference-Based Sorting Algorithm:**
-            1. **Reference Selection**: The first element becomes the reference point
-            2. **Difference Calculation**: Calculate the difference of each element relative to the reference
-            3. **Positioning**: Place elements in positions equal to their differences (with null padding)
-            4. **Null Removal**: Remove null values to get the final sorted array
-            
-            **Example**: For array [5, 2, 8, 1, 9]
-            - Reference: 5
-            - Differences: [0, -3, 3, -4, 4]
-            - Positioned array: [null, null, null, 1, null, 2, null, null, 5, 8, 9]
-            - Final sorted: [1, 2, 5, 8, 9]
-            """)
-        else:
-            st.markdown("""
-            **Optimized Reference-Based Sorting Algorithm:**
-            1. **Reference Selection**: The first element becomes the reference point
-            2. **Difference Calculation**: Calculate the difference of each element relative to the reference
-            3. **Hash Mapping**: Store differences and their values in a hash map (no null positions)
-            4. **Sorted Assembly**: Sort differences and build final array from hash map
-            
-            **Example**: For array [5, 2, 8, 1, 9]
-            - Reference: 5
-            - Differences: [0, -3, 3, -4, 4]
-            - Hash map: {-4: [1], -3: [2], 0: [5], 3: [8], 4: [9]}
-            - Final sorted: [1, 2, 5, 8, 9]
-            
-            **Key Advantages:**
-            - No memory waste on null positions
-            - Efficient for sparse data
-            - Handles duplicates naturally
-            """)
+        **Example**: For array [5, 2, 8, 1, 9]
+        - Reference: 5
+        - Differences: [0, -3, 3, -4, 4]
+        - Positioned array: [null, null, null, 1, null, 2, null, null, 5, 8, 9]
+        - Final sorted: [1, 2, 5, 8, 9]
+        """)
         
-    # Algorithm selector (outside expander to persist selection)
-    st.subheader("Choose Algorithm to Visualize")
-    
-    # Initialize session state for algorithm selection
-    if 'selected_algorithm' not in st.session_state:
-        st.session_state.selected_algorithm = "Original Reference-Based"
-    
-    selected_algorithm = st.selectbox(
-        "Select which algorithm to run step-by-step:",
-        ["Original Reference-Based", "Optimized Reference-Based"],
-        index=0 if st.session_state.selected_algorithm == "Original Reference-Based" else 1,
-        key="algorithm_selector"
-    )
-    
-    # Update session state
-    st.session_state.selected_algorithm = selected_algorithm
     
     # Validation and processing
     if not input_array:
@@ -142,16 +140,60 @@ def main():
     st.write(f"Array: {input_array}")
     st.write(f"Size: {len(input_array)} elements")
     
-    # Initialize sorting classes
-    ref_sorter = ReferenceBasedSorting()
-    optimized_sorter = OptimizedReferenceBasedSorting()
-    std_sorter = StandardSorting()
+    # Initialize sorting classes based on selection
     visualizer = SortingVisualizer()
     
-    # Execute selected sorting algorithm with steps
-    if selected_algorithm == "Original Reference-Based":
-        st.header("Original Reference-Based Sorting Steps")
-        try:
+    # Show thread info
+    if use_parallel:
+        st.info(f"🔧 Parallel processing enabled with {num_threads} {'threads' if parallel_method == 'Threading' else 'processes'} ({parallel_method})")
+    
+    # Select appropriate sorting class
+    if algorithm_type == "Original Reference-Based":
+        if use_parallel:
+            if parallel_method == "Multiprocessing":
+                ref_sorter = MultiprocessReferenceBasedSorting(num_threads)
+            else:
+                ref_sorter = ParallelReferenceBasedSorting(num_threads)
+        else:
+            ref_sorter = ReferenceBasedSorting()
+        algorithm_name = "Reference-Based Sorting"
+    elif algorithm_type == "Optimized Hash-Based":
+        if use_parallel:
+            if parallel_method == "Multiprocessing":
+                # Use multiprocess version for optimized too
+                ref_sorter = MultiprocessReferenceBasedSorting(num_threads)
+            else:
+                ref_sorter = OptimizedParallelReferenceBasedSorting(num_threads)
+        else:
+            ref_sorter = OptimizedReferenceBasedSorting(num_threads)
+        algorithm_name = "Optimized Hash-Based Sorting"
+    else:
+        # Standard algorithms
+        if use_parallel:
+            if parallel_method == "Multiprocessing":
+                ref_sorter = MultiprocessStandardSorting(num_threads)
+            else:
+                ref_sorter = ParallelStandardSorting(num_threads)
+        else:
+            ref_sorter = StandardSorting()
+        algorithm_name = "Standard Sorting Algorithms"
+    
+    if use_parallel and parallel_method == "Multiprocessing":
+        std_sorter = MultiprocessStandardSorting(num_threads)
+    elif use_parallel:
+        std_sorter = ParallelStandardSorting(num_threads)
+    else:
+        std_sorter = StandardSorting()
+    
+    # Execute sorting algorithm with steps
+    st.header(f"{algorithm_name} Steps")
+    try:
+        if algorithm_type == "Standard Algorithms":
+            # Standard algorithms don't have step-by-step visualization
+            st.info("Standard algorithms don't support step-by-step visualization")
+            sorted_result = sorted(input_array.copy())
+            st.write(f"**Sorted Array**: {sorted_result}")
+        else:
             steps = ref_sorter.sort_with_steps(input_array.copy())
             
             # Display each step
@@ -191,70 +233,9 @@ def main():
                     })
                     st.table(comparison_df)
         
-        except Exception as e:
-            st.error(f"Error in original reference-based sorting: {str(e)}")
-            return
-    
-    else:  # Optimized Reference-Based
-        st.header("Optimized Reference-Based Sorting Steps")
-        try:
-            steps = optimized_sorter.sort_with_steps(input_array.copy())
-            
-            # Display each step
-            for i, step in enumerate(steps):
-                st.subheader(f"Step {i + 1}: {step['description']}")
-                
-                if step['type'] == 'reference':
-                    st.write(f"**Reference Element**: {step['reference']}")
-                    st.write(f"**Array**: {step['array']}")
-                
-                elif step['type'] == 'differences':
-                    st.write(f"**Differences**: {step['differences']}")
-                    # Display differences calculation
-                    diff_df = pd.DataFrame({
-                        'Element': step['array'],
-                        'Reference': [step['reference']] * len(step['array']),
-                        'Difference': step['differences']
-                    })
-                    st.table(diff_df)
-                
-                elif step['type'] == 'hash_mapping':
-                    st.write("**Hash Map Creation:**")
-                    # Display hash map
-                    hash_data = []
-                    for diff, info in sorted(step['count_map'].items()):
-                        hash_data.append({
-                            'Difference': diff,
-                            'Values': info['values'],
-                            'Count': info['count']
-                        })
-                    hash_df = pd.DataFrame(hash_data)
-                    st.table(hash_df)
-                    
-                    # Visualize hash mapping
-                    figures = visualizer.visualize_step_by_step([step])
-                    if figures:
-                        st.plotly_chart(figures[0], use_container_width=True)
-                
-                elif step['type'] == 'final_optimized':
-                    st.write(f"**Sorted Differences**: {step['sorted_differences']}")
-                    st.write(f"**Final Sorted Array**: {step['sorted_array']}")
-                    
-                    # Visualize final result
-                    figures = visualizer.visualize_step_by_step([step])
-                    if figures:
-                        st.plotly_chart(figures[0], use_container_width=True)
-                    
-                    # Show before and after
-                    comparison_df = pd.DataFrame({
-                        'Original': input_array + [None] * (len(step['sorted_array']) - len(input_array)),
-                        'Sorted': step['sorted_array'] + [None] * (len(input_array) - len(step['sorted_array']))
-                    })
-                    st.table(comparison_df)
-        
-        except Exception as e:
-            st.error(f"Error in optimized reference-based sorting: {str(e)}")
-            return
+    except Exception as e:
+        st.error(f"Error in reference-based sorting: {str(e)}")
+        return
     
     # Performance comparison
     st.header("Performance Comparison")
@@ -275,18 +256,43 @@ def main():
     # Execution time comparison
     st.subheader("Execution Time Comparison")
     
+    # Test configuration
+    col1, col2 = st.columns(2)
+    with col1:
+        test_parallel = st.checkbox("Include Parallel Tests", value=use_parallel)
+    with col2:
+        if test_parallel:
+            thread_counts = st.multiselect(
+                "Thread Counts to Test",
+                options=[1, 2, 4, 8, 16, 32],
+                default=[1, max_threads, max_threads * 2] if max_threads <= 8 else [1, 4, 8, max_threads]
+            )
+        else:
+            thread_counts = [1]
+    
     # Test with different array sizes
     sizes = [10, 50, 100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000, 5000000, 10000000]
     if st.button("Run Performance Tests"):
         st.warning("⚠️ Testing large arrays (up to 10M elements) may take several minutes to complete.")
         
         performance_data = {
-            'Array Size': [],
-            'Reference-Based (ms)': [],
-            'Optimized Reference-Based (ms)': [],
-            'Built-in Sort (ms)': [],
-            'Bubble Sort (ms)': []
+            'Array Size': []
         }
+        
+        # Add columns for each algorithm and thread count
+        if algorithm_type == "Original Reference-Based":
+            performance_data['Reference-Based (ms)'] = []
+            if test_parallel:
+                for threads in thread_counts:
+                    performance_data[f'Parallel Ref-Based ({threads}T)'] = []
+        elif algorithm_type == "Optimized Hash-Based":
+            performance_data['Optimized Hash-Based (ms)'] = []
+            if test_parallel:
+                for threads in thread_counts:
+                    performance_data[f'Parallel Optimized ({threads}T)'] = []
+        
+        performance_data['Built-in Sort (ms)'] = []
+        performance_data['Bubble Sort (ms)'] = []
         
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -297,15 +303,37 @@ def main():
             # Generate test array
             test_array = np.random.randint(1, 1000, size).tolist()
             
-            # Test reference-based sorting
-            start_time = time.time()
-            ref_sorter.sort(test_array.copy())
-            ref_time = (time.time() - start_time) * 1000
+            # Test selected algorithm
+            if algorithm_type == "Original Reference-Based":
+                # Test sequential
+                start_time = time.time()
+                ReferenceBasedSorting().sort(test_array.copy())
+                ref_time = (time.time() - start_time) * 1000
+                performance_data['Reference-Based (ms)'].append(ref_time)
+                
+                # Test parallel versions
+                if test_parallel:
+                    for threads in thread_counts:
+                        start_time = time.time()
+                        ParallelReferenceBasedSorting(threads).sort(test_array.copy())
+                        par_time = (time.time() - start_time) * 1000
+                        performance_data[f'Parallel Ref-Based ({threads}T)'].append(par_time)
             
-            # Test optimized reference-based sorting
-            start_time = time.time()
-            optimized_sorter.sort(test_array.copy())
-            optimized_time = (time.time() - start_time) * 1000
+            elif algorithm_type == "Optimized Hash-Based":
+                # Test sequential
+                start_time = time.time()
+                OptimizedReferenceBasedSorting().sort(test_array.copy())
+                opt_time = (time.time() - start_time) * 1000
+                performance_data['Optimized Hash-Based (ms)'].append(opt_time)
+                
+                # Test parallel versions
+                if test_parallel:
+                    for threads in thread_counts:
+                        start_time = time.time()
+                        OptimizedParallelReferenceBasedSorting(threads).sort(test_array.copy())
+                        par_time = (time.time() - start_time) * 1000
+                        performance_data[f'Parallel Optimized ({threads}T)'].append(par_time)
+            
             
             # Test built-in sort
             start_time = time.time()
@@ -321,8 +349,6 @@ def main():
                 bubble_time = None
             
             performance_data['Array Size'].append(size)
-            performance_data['Reference-Based (ms)'].append(ref_time)
-            performance_data['Optimized Reference-Based (ms)'].append(optimized_time)
             performance_data['Built-in Sort (ms)'].append(builtin_time)
             performance_data['Bubble Sort (ms)'].append(bubble_time)
             
@@ -341,49 +367,42 @@ def main():
         display_df['Array Size'] = display_df['Array Size'].apply(lambda x: f'{x:,}')
         
         # Format time values with 2 decimal places
-        time_columns = ['Reference-Based (ms)', 'Optimized Reference-Based (ms)', 'Built-in Sort (ms)', 'Bubble Sort (ms)']
+        time_columns = [col for col in display_df.columns if col != 'Array Size' and '(ms)' in col or col.endswith('T)')]
         for col in time_columns:
-            display_df[col] = display_df[col].apply(lambda x: f'{x:.2f}' if x is not None else 'N/A')
+            if col in display_df.columns:
+                display_df[col] = display_df[col].apply(lambda x: f'{x:.2f}' if x is not None else 'N/A')
         
         st.table(display_df)
         
         # Plot performance comparison using numeric data
         fig = go.Figure()
         
-        fig.add_trace(go.Scatter(
-            x=plot_df['Array Size'],
-            y=plot_df['Reference-Based (ms)'],
-            mode='lines+markers',
-            name='Reference-Based',
-            line=dict(color='blue')
-        ))
+        # Plot all algorithm columns except Array Size
+        colors = px.colors.qualitative.Plotly
+        color_idx = 0
         
-        fig.add_trace(go.Scatter(
-            x=plot_df['Array Size'],
-            y=plot_df['Optimized Reference-Based (ms)'],
-            mode='lines+markers',
-            name='Optimized Reference-Based',
-            line=dict(color='purple')
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=plot_df['Array Size'],
-            y=plot_df['Built-in Sort (ms)'],
-            mode='lines+markers',
-            name='Built-in Sort',
-            line=dict(color='green')
-        ))
-        
-        # Add bubble sort only for sizes where it was tested
-        bubble_data = plot_df[plot_df['Bubble Sort (ms)'].notna()]
-        if not bubble_data.empty:
-            fig.add_trace(go.Scatter(
-                x=bubble_data['Array Size'],
-                y=bubble_data['Bubble Sort (ms)'],
-                mode='lines+markers',
-                name='Bubble Sort',
-                line=dict(color='red')
-            ))
+        for col in plot_df.columns:
+            if col != 'Array Size' and col in plot_df:
+                # Handle bubble sort separately (only for small sizes)
+                if col == 'Bubble Sort (ms)':
+                    bubble_data = plot_df[plot_df[col].notna()]
+                    if not bubble_data.empty:
+                        fig.add_trace(go.Scatter(
+                            x=bubble_data['Array Size'],
+                            y=bubble_data[col],
+                            mode='lines+markers',
+                            name=col.replace(' (ms)', ''),
+                            line=dict(color='red')
+                        ))
+                else:
+                    fig.add_trace(go.Scatter(
+                        x=plot_df['Array Size'],
+                        y=plot_df[col],
+                        mode='lines+markers',
+                        name=col.replace(' (ms)', ''),
+                        line=dict(color=colors[color_idx % len(colors)])
+                    ))
+                    color_idx += 1
         
         fig.update_layout(
             title='Sorting Algorithm Performance Comparison',
@@ -394,70 +413,87 @@ def main():
         
         st.plotly_chart(fig, use_container_width=True)
     
-    # Space efficiency comparison
-    st.subheader("Space Efficiency Comparison")
     
-    if st.button("Test Space Efficiency"):
-        st.markdown("**Testing space efficiency with sparse data:**")
+    # Thread Scalability Analysis
+    if use_parallel or test_parallel:
+        st.header("Thread Scalability Analysis")
         
-        # Test with sparse data (large range, few elements)
-        sparse_test_cases = [
-            ("Small sparse: [1, 1000]", [1, 1000]),
-            ("Medium sparse: [5, 500, 2000]", [5, 500, 2000]),
-            ("Large sparse: [1, 10000, 50000]", [1, 10000, 50000]),
-            ("Very sparse: [1, 100000]", [1, 100000])
-        ]
-        
-        efficiency_data = []
-        
-        for case_name, test_array in sparse_test_cases:
-            # Get memory usage comparison
-            sorted_result, original_space, optimized_space = optimized_sorter.sort_with_memory_usage(test_array.copy())
+        if st.button("Run Thread Scalability Test"):
+            st.info("Testing thread scalability with different array sizes...")
             
-            efficiency_data.append({
-                'Test Case': case_name,
-                'Array Size': len(test_array),
-                'Value Range': f"{min(test_array)} to {max(test_array)}",
-                'Original Space Needed': original_space,
-                'Optimized Space Used': optimized_space,
-                'Space Reduction': f"{((original_space - optimized_space) / original_space * 100):.1f}%"
-            })
-        
-        efficiency_df = pd.DataFrame(efficiency_data)
-        st.table(efficiency_df)
-        
-        # Visualize space efficiency
-        fig_space = go.Figure()
-        
-        fig_space.add_trace(go.Bar(
-            x=efficiency_df['Test Case'],
-            y=efficiency_df['Original Space Needed'],
-            name='Original Algorithm',
-            marker_color='lightcoral'
-        ))
-        
-        fig_space.add_trace(go.Bar(
-            x=efficiency_df['Test Case'],
-            y=efficiency_df['Optimized Space Used'],
-            name='Optimized Algorithm',
-            marker_color='lightgreen'
-        ))
-        
-        fig_space.update_layout(
-            title='Space Usage Comparison: Original vs Optimized',
-            xaxis_title='Test Case',
-            yaxis_title='Memory Units Required',
-            yaxis_type='log',
-            barmode='group'
-        )
-        
-        st.plotly_chart(fig_space, use_container_width=True)
-        
-        st.success("**Key Insights:**")
-        st.write("- Optimized algorithm uses significantly less memory for sparse data")
-        st.write("- Memory savings increase dramatically with larger value ranges")
-        st.write("- Original algorithm struggles with large gaps between values")
-        st.write("- Optimized version maintains performance regardless of value distribution")
+            test_sizes = [10000, 100000, 1000000]
+            test_threads = [1, 2, 4, 8, max_threads, max_threads * 2]
+            
+            scalability_data = {
+                'Array Size': [],
+                'Threads': [],
+                'Time (ms)': [],
+                'Speedup': []
+            }
+            
+            for size in test_sizes:
+                test_array = np.random.randint(1, 1000, size).tolist()
+                baseline_time = None
+                
+                for threads in test_threads:
+                    if threads > max_threads * 2:
+                        continue
+                    
+                    # Test parallel algorithm
+                    if algorithm_type == "Original Reference-Based":
+                        sorter = ParallelReferenceBasedSorting(threads)
+                    elif algorithm_type == "Optimized Hash-Based":
+                        sorter = OptimizedParallelReferenceBasedSorting(threads)
+                    else:
+                        sorter = ParallelStandardSorting(threads)
+                    
+                    start_time = time.time()
+                    if algorithm_type == "Standard Algorithms":
+                        sorter.parallel_merge_sort(test_array.copy())
+                    else:
+                        sorter.sort(test_array.copy())
+                    elapsed_time = (time.time() - start_time) * 1000
+                    
+                    if baseline_time is None:
+                        baseline_time = elapsed_time
+                    
+                    speedup = baseline_time / elapsed_time
+                    
+                    scalability_data['Array Size'].append(size)
+                    scalability_data['Threads'].append(threads)
+                    scalability_data['Time (ms)'].append(elapsed_time)
+                    scalability_data['Speedup'].append(speedup)
+            
+            # Create scalability plot
+            scalability_df = pd.DataFrame(scalability_data)
+            
+            fig = px.line(scalability_df, 
+                         x='Threads', 
+                         y='Speedup', 
+                         color='Array Size',
+                         title='Thread Scalability Analysis',
+                         markers=True)
+            
+            # Add ideal speedup line
+            ideal_threads = list(range(1, max(test_threads) + 1))
+            fig.add_trace(go.Scatter(
+                x=ideal_threads,
+                y=ideal_threads,
+                mode='lines',
+                name='Ideal Speedup',
+                line=dict(dash='dash', color='gray')
+            ))
+            
+            fig.update_xaxis(title='Number of Threads')
+            fig.update_yaxis(title='Speedup Factor')
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Show detailed results
+            st.subheader("Detailed Scalability Results")
+            display_df = scalability_df.copy()
+            display_df['Time (ms)'] = display_df['Time (ms)'].apply(lambda x: f'{x:.2f}')
+            display_df['Speedup'] = display_df['Speedup'].apply(lambda x: f'{x:.2f}x')
+            st.dataframe(display_df)
     
     # Analysis and insights
     st.header("Analysis and Insights")
@@ -544,17 +580,16 @@ def optimized_reference_sort(arr):
     st.subheader("Performance Characteristics Comparison")
     
     perf_comparison = pd.DataFrame({
-        'Algorithm': ['Original Reference-Based', 'Optimized Hash-Based', 'Python Built-in', 'Quick Sort', 'Merge Sort'],
-        'Time Complexity': ['O(n + k)', 'O(n log k)', 'O(n log n)', 'O(n log n)', 'O(n log n)'],
-        'Space Complexity': ['O(k)', 'O(k)', 'O(1)', 'O(log n)', 'O(n)'],
+        'Algorithm': ['Reference-Based', 'Python Built-in', 'Quick Sort', 'Merge Sort'],
+        'Time Complexity': ['O(n + k)', 'O(n log n)', 'O(n log n)', 'O(n log n)'],
+        'Space Complexity': ['O(k)', 'O(1)', 'O(log n)', 'O(n)'],
         'Best Use Case': [
             'Small range, dense data',
-            'Any range, sparse data',
             'General purpose',
             'General purpose',
             'Stable sorting needed'
         ],
-        'Stability': ['Stable', 'Stable', 'Stable', 'Unstable', 'Stable']
+        'Stability': ['Stable', 'Stable', 'Unstable', 'Stable']
     })
     
     st.table(perf_comparison)
@@ -603,7 +638,16 @@ def optimized_reference_sort(arr):
                     st.warning("Empty array - no sorting needed")
                     continue
                 
-                result = ref_sorter.sort(test_array.copy())
+                # Use appropriate sorting method based on algorithm type
+                if algorithm_type == "Standard Algorithms":
+                    # For standard algorithms, use merge sort as example
+                    if use_parallel:
+                        result = std_sorter.parallel_merge_sort(test_array.copy())
+                    else:
+                        result = std_sorter.merge_sort(test_array.copy())
+                else:
+                    result = ref_sorter.sort(test_array.copy())
+                
                 st.success(f"Result: {result}")
                 
                 # Verify correctness

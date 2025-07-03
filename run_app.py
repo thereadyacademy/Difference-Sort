@@ -98,15 +98,39 @@ def main():
     
     print_colored("Dependencies installed successfully", Colors.GREEN)
     
-    # Run the Streamlit app
-    print_colored("\nStarting Streamlit app...", Colors.GREEN)
+    # Ask user which version to run
+    print_colored("\n=== SELECT APPLICATION MODE ===", Colors.GREEN)
+    print("\n1. Standard Demo Application")
+    print("   - Interactive sorting demonstration")
+    print("   - Performance comparisons")
+    print("   - Step-by-step visualization\n")
+    
+    print("2. Interactive Research Paper")
+    print("   - Academic paper format")
+    print("   - Mathematical proofs and theorems")
+    print("   - Publication-ready presentation\n")
+    
+    while True:
+        choice = input("Enter your choice (1 or 2): ").strip()
+        
+        if choice == '1':
+            app_file = "app.py"
+            print_colored("\nStarting Standard Demo Application...", Colors.GREEN)
+            break
+        elif choice == '2':
+            app_file = "research_paper_app.py"
+            print_colored("\nStarting Interactive Research Paper...", Colors.GREEN)
+            break
+        else:
+            print_colored("Invalid choice. Please enter 1 or 2.", Colors.RED)
+    
     print_colored("The app will open in your default browser at http://localhost:8501", Colors.YELLOW)
     print_colored("Press Ctrl+C to stop the server\n", Colors.YELLOW)
     
     streamlit_exe = os.path.join(venv_path, "Scripts" if platform.system() == "Windows" else "bin", "streamlit")
     
     try:
-        subprocess.run([streamlit_exe, "run", "app.py"])
+        subprocess.run([streamlit_exe, "run", app_file])
     except KeyboardInterrupt:
         print_colored("\n\nStreamlit server stopped", Colors.YELLOW)
 
