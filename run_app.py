@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Cross-platform script to set up and run the Integer Sorter Streamlit app
+Cross-platform script to set up and run the Difference Sort Streamlit app
 """
 
 import os
@@ -38,14 +38,14 @@ def run_command(command, shell=True):
         return False
 
 def main():
-    print_colored("=== Integer Sorter Setup Script ===", Colors.GREEN)
+    print_colored("=== Difference Sort Setup Script ===", Colors.GREEN)
     
-    # Navigate to the IntegerSorter directory
+    # Navigate to the DifferenceSort directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    app_dir = os.path.join(script_dir, "IntegerSorter")
+    app_dir = os.path.join(script_dir, "DifferenceSort")
     
     if not os.path.exists(app_dir):
-        print_colored("Error: IntegerSorter directory not found", Colors.RED)
+        print_colored("Error: DifferenceSort directory not found", Colors.RED)
         sys.exit(1)
     
     os.chdir(app_dir)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to set up and run the Integer Sorter Streamlit app
+# Script to set up and run the Difference Sort Streamlit app
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -8,10 +8,10 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}=== Integer Sorter Setup Script ===${NC}"
+echo -e "${GREEN}=== Difference Sort Setup Script ===${NC}"
 
-# Navigate to the IntegerSorter directory
-cd "$(dirname "$0")/IntegerSorter" || { echo -e "${RED}Error: IntegerSorter directory not found${NC}"; exit 1; }
+# Navigate to the DifferenceSort directory
+cd "$(dirname "$0")/DifferenceSort" || { echo -e "${RED}Error: DifferenceSort directory not found${NC}"; exit 1; }
 
 # Check if Python is installed
 echo -e "\n${YELLOW}Checking Python installation...${NC}"

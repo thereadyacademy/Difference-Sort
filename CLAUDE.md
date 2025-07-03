@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Running the Application
 ```bash
-cd IntegerSorter
+cd DifferenceSort
 streamlit run app.py
 ```
 
 ### Installing Dependencies
 ```bash
-cd IntegerSorter
+cd DifferenceSort
 pip install -r requirements.txt
 # or using uv (if available):
 uv pip install -r pyproject.toml

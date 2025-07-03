@@ -1,11 +1,11 @@
 @echo off
-REM Script to set up and run the Integer Sorter Streamlit app on Windows
+REM Script to set up and run the Difference Sort Streamlit app on Windows
 
-echo === Integer Sorter Setup Script ===
+echo === Difference Sort Setup Script ===
 
-REM Navigate to the IntegerSorter directory
-cd /d "%~dp0IntegerSorter" || (
-    echo Error: IntegerSorter directory not found
+REM Navigate to the DifferenceSort directory
+cd /d "%~dp0DifferenceSort" || (
+    echo Error: DifferenceSort directory not found
     pause
     exit /b 1
 )
